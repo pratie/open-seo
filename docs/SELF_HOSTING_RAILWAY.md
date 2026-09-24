@@ -25,16 +25,20 @@ parent directory would hide it.
 
 ## Setup
 
-1. Create a Railway service from this repository. `railway.json` selects
-   `Dockerfile.railway` and configures the healthcheck.
-2. Add a volume mounted at `/app/.wrangler/state`.
-3. Generate a Railway domain (or add a custom domain).
-4. Set the service variables:
+1. Create a Railway service from this repository.
+2. In the service settings, set:
+   - **Dockerfile path**: `Dockerfile.railway`
+   - **Healthcheck path**: `/api/health`, with a timeout of 300 seconds
+   - **Restart policy**: on failure
+3. Add a volume mounted at `/app/.wrangler/state`.
+4. Generate a Railway domain on port `8080` (or add a custom domain).
+5. Set the service variables:
 
 | Variable               | Required | Value                                                                                                   |
 | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------- |
 | `OPENSEO_USERNAME`     | Yes      | Basic auth username.                                                                                    |
 | `OPENSEO_PASSWORD`     | Yes      | Basic auth password. Use a long random value.                                                           |
+| `PORT`                 | Yes      | `8080`, matching the domain's target port.                                                              |
 | `ALLOWED_HOST`         | Yes      | The public hostname, for example `openseo-production.up.railway.app`.                                   |
 | `DATAFORSEO_API_KEY`   | Yes      | See [`DATAFORSEO_API_KEY.md`](./DATAFORSEO_API_KEY.md).                                                 |
 | `OPENROUTER_API_KEY`   | No       | Enables SAM, the in-app SEO agent.                                                                      |

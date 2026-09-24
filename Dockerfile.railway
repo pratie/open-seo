@@ -26,7 +26,11 @@ ENV CLOUDFLARE_INCLUDE_PROCESS_ENV=true
 # Build in the image instead of at container start, then write the same env
 # fingerprint docker-entrypoint.sh computes (keep the prefix list in sync) so
 # its boot-time build is skipped. A mismatch only costs a rebuild at boot.
+# The build snapshots the build-time process.env into dist/*/.dev.vars, which
+# vite preview would use instead of the live env; removing it makes the worker
+# read Railway's runtime variables (via CLOUDFLARE_INCLUDE_PROCESS_ENV).
 RUN pnpm run build \
+  && rm -f dist/*/.dev.vars \
   && env | grep -E '^(VITE_|AUTH_MODE|BYPASS_EMAIL_VERIFICATION|POSTHOG_PUBLIC_KEY|POSTHOG_HOST|TURNSTILE_SITE_KEY|POSTHOG_SOURCEMAPS)' \
     | sort | sha256sum | cut -d' ' -f1 | tr -d '\n' > dist/.openseo-build-env
 
