@@ -1,0 +1,33 @@
+# Railway image: the Docker self-host app (Dockerfile.selfhost) behind Caddy,
+# which adds HTTP basic auth — the app itself runs AUTH_MODE=local_noauth.
+# See docs/SELF_HOSTING_RAILWAY.md.
+FROM node:22
+
+COPY --from=caddy:2 /usr/bin/caddy /usr/bin/caddy
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@10.30.1 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+# Build-time envs that vite inlines into the bundle. Setting them here (not as
+# Railway variables) keeps the image build and runtime environments identical.
+ENV AUTH_MODE=local_noauth
+ENV VITE_SHOW_DEVTOOLS=false
+ENV CLOUDFLARE_INCLUDE_PROCESS_ENV=true
+
+# Build in the image instead of at container start, then write the same env
+# fingerprint docker-entrypoint.sh computes (keep the prefix list in sync) so
+# its boot-time build is skipped. A mismatch only costs a rebuild at boot.
+RUN pnpm run build \
+  && env | grep -E '^(VITE_|AUTH_MODE|BYPASS_EMAIL_VERIFICATION|POSTHOG_PUBLIC_KEY|POSTHOG_HOST|TURNSTILE_SITE_KEY|POSTHOG_SOURCEMAPS)' \
+    | sort | sha256sum | cut -d' ' -f1 | tr -d '\n' > dist/.openseo-build-env
+
+CMD ["bash", "deploy/railway/start.sh"]

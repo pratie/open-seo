@@ -1,0 +1,25 @@
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT} {
+	# Railway's healthcheck arrives with Host healthcheck.railway.app, which
+	# vite preview's host check rejects; send it on as a loopback request.
+	handle /api/health {
+		reverse_proxy 127.0.0.1:{$APP_PORT} {
+			header_up Host {upstream_hostport}
+		}
+	}
+
+	handle {
+		basic_auth {
+			{$OPENSEO_USERNAME} {$OPENSEO_PASSWORD_HASH}
+		}
+		# Railway terminates TLS at its edge. The app builds public URLs (MCP,
+		# Search Console OAuth callbacks) from X-Forwarded-Proto/Host.
+		reverse_proxy 127.0.0.1:{$APP_PORT} {
+			header_up X-Forwarded-Proto https
+		}
+	}
+}
